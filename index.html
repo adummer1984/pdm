@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDP Content Visualizer</title>
+</head>
+<body>
+    <h1>PDP Content Visualizer</h1>
+
+    <form id="productForm">
+        <label for="ean">EAN:</label>
+        <input type="text" id="ean" name="ean" required><br>
+
+        <label for="channelProfile">Channel Profile:</label>
+        <select id="channelProfile" name="channelProfile">
+            <option value="Amazon">Amazon</option>
+            <option value="B2B">B2B</option>
+            <option value="B2C">B2C</option>
+        </select><br>
+
+        <!-- Add other form fields for product information -->
+
+        <button type="button" id="generateButton">Save and Generate Website</button>
+        <button type="button" id="downloadButton">Download as CSV</button>
+    </form>
+
+    <div id="generatedWebsite"></div>
+
+    <script>
+        let generatedProduct; // Store generated product data globally
+
+        function generateWebsite() {
+            const ean = document.getElementById('ean').value;
+            const channelProfile = document.getElementById('channelProfile').value;
+            // ... (get other form values)
+
+            const apiEndpoint = 'https://sheetsu.com/apis/v1.0su/08dff3939450';
+            fetch(apiEndpoint)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('API Response:', data);
+                    const product = data.find(item => item.EAN === ean);
+
+                    if (product) {
+                        let productDescription;
+                        if (channelProfile === 'Amazon') {
+                            productDescription = product['Product Description (Amazon)'];
+                        } else if (channelProfile === 'B2B') {
+                            productDescription = product['Product Description (B2B)'];
+                        } else if (channelProfile === 'B2C') {
+                            productDescription = product['Product Description (B2C)'];
+                        } else {
+                            productDescription = 'Invalid channel profile';
+                        }
+
+                        const websiteContent = `
+                            <div class="product">
+                                <h2>EAN: ${product.EAN}</h2>
+                                <h3>Product Title: ${product['Product Title']}</h3>
+                                <p>Product Description: ${productDescription}</p>
+                                <ul>
+                                    <li>Selling Point 1: ${product['Selling Point 1']}</li>
+                                    <li>Selling Point 2: ${product['Selling Point 2']}</li>
+                                    <li>Selling Point 3: ${product['Selling Point 3']}</li>
+                                    <li>Selling Point 4: ${product['Selling Point 4']}</li>
+                                    <li>Selling Point 5: ${product['Selling Point 5']}</li>
+                                </ul>
+                                <p>Keywords: ${product.Keywords}</p>
+                                <p>Channel Profile: ${channelProfile}</p>
+                                <img src="${product['Image URL']}" alt="${product['Product Title']}">
+                            </div>
+                        `;
+
+                        document.getElementById('generatedWebsite').innerHTML = websiteContent;
+                        generatedProduct = { ...product, 'Channel Profile': channelProfile }; // Store the generated product globally
+                    } else {
+                        alert('Product not found.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                    alert('An error occurred while fetching data.');
+                });
+        }
+
+        function downloadProduct() {
+            if (generatedProduct) {
+                // Convert product data to CSV format
+                const csvContent = `EAN,Product Title,Product Description,Selling Point 1,Selling Point 2,Selling Point 3,Selling Point 4,Selling Point 5,Keywords,Channel Profile,Image URL\n${Object.values(generatedProduct).join(',')}`;
+                
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `product_${generatedProduct.EAN}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } else {
+                alert('No product data to download. Generate product data first.');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('generateButton').addEventListener('click', generateWebsite);
+            document.getElementById('downloadButton').addEventListener('click', downloadProduct);
+        });
+    </script>
+
+<p>This tool currently only works with the following EANs: 1, 4078500054157</p>
+
+</body>
+</html>
